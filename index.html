@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Чихуахуа и Дверь</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, serif;
+    background: linear-gradient(135deg, #87CEEB 0%, #E0F6FF 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow: hidden;
+  }
+  h1 {
+    color: #4a4a4a;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  }
+  .room {
+    width: 100%;
+    max-width: 600px;
+    background: #f5f5dc;
+    border: 5px solid #8b7355;
+    border-radius: 15px;
+    padding: 40px;
+    margin: 20px 0;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+  .door {
+    width: 150px;
+    height: 250px;
+    background: linear-gradient(135deg, #8b4513 0%, #654321 100%);
+    border: 4px solid #3e2723;
+    border-radius: 10px 10px 0 0;
+    margin: 0 auto;
+    position: relative;
+    cursor: pointer;
+    transition: transform 1.5s ease;
+    transform-origin: left center;
+  }
+  .door.open {
+    transform: perspective(800px) rotateY(-85deg);
+  }
+  .door-handle {
+    width: 20px;
+    height: 20px;
+    background: #ffd700;
+    border-radius: 50%;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    box-shadow: 0 0 10px rgba(255,215,0,0.5);
+  }
+  .door.locked::after {
+    content: '🔒';
+    position: absolute;
+    right: 10px;
+    top: 40%;
+    font-size: 2em;
+  }
+  .door.unlocked::after {
+    content: '🔓';
+    position: absolute;
+    right: 10px;
+    top: 40%;
+    font-size: 2em;
+  }
+  .dog {
+    font-size: 5em;
+    text-align: center;
+    margin: 30px 0;
+    cursor: pointer;
+    transition: transform 0.3s;
+    animation: wag 0.5s infinite alternate;
+  }
+  .dog:hover {
+    transform: scale(1.2);
+  }
+  @keyframes wag {
+    from { transform: rotate(-5deg); }
+    to { transform: rotate(5deg); }
+  }
+  .message {
+    background: #fff;
+    border: 3px solid #8b7355;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+    font-size: 1.2em;
+    min-height: 60px;
+  }
+  .inventory {
+    background: #fff;
+    border: 2px solid #8b7355;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    text-align: center;
+  }
+  .win {
+    background: linear-gradient(135deg, #90EE90 0%, #32CD32 100%);
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    display: none;
+    margin-top: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 10;
+    position: relative;
+  }
+  .win h2 {
+    color: #fff;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  .win p {
+    font-size: 1.3em;
+    color: #fff;
+  }
+  .btn {
+    background: #ffd700;
+    color: #333;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: 0.2s;
+  }
+  .btn:hover {
+    background: #ffed4e;
+    transform: scale(1.05);
+  }
+  
+  /* Конфетти из сосисок */
+  .sausage {
+    position: fixed;
+    font-size: 3em;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall linear forwards;
+  }
+  
+  @keyframes fall {
+    0% {
+      transform: translateY(-100px) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100vh) rotate(720deg);
+      opacity: 0.8;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>🐕 Чихуахуа и Дверь</h1>
+
+<div class="room">
+  <div class="door locked" id="door" onclick="tryOpenDoor()">
+    <div class="door-handle"></div>
+  </div>
+
+  <div class="dog" id="dog" onclick="callDog()">🐕</div>
+
+  <div class="message" id="msg">Дверь заперта. Позови чихуахуа!</div>
+  
+  <div class="inventory" id="inv">🎒 У тебя: ничего</div>
+</div>
+
+<div class="win" id="win">
+  <h2>🎉 ПОБЕДА!</h2>
+  <p>Дверь открылась! Ты свободен!</p>
+  <p style="font-size: 2em; margin-top: 20px;">🐕🗝️🚪✨🌭</p>
+  <button class="btn" onclick="restart()">Играть снова</button>
+</div>
+
+<script>
+  let hasKey = false;
+  let doorLocked = true;
+
+  function callDog() {
+    const msg = document.getElementById('msg');
+    const dog = document.getElementById('dog');
+    
+    if (!hasKey) {
+      msg.textContent = '🐕 Гав! Чихуахуа принесла тебе ключ!';
+      hasKey = true;
+      document.getElementById('inv').textContent = '🎒 У тебя: 🔑 Ключ';
+      dog.textContent = '🐕🗝️';
+    } else {
+      msg.textContent = '🐕 Чихуахуа рада тебя видеть! Гав-гав!';
+    }
+  }
+
+  function tryOpenDoor() {
+    const msg = document.getElementById('msg');
+    const door = document.getElementById('door');
+    
+    if (!hasKey) {
+      msg.textContent = '🔒 Дверь заперта. Нужен ключ!';
+    } else if (doorLocked) {
+      msg.textContent = '🔓 Ты открыл замок ключом!';
+      door.classList.remove('locked');
+      door.classList.add('unlocked');
+      doorLocked = false;
+    } else {
+      door.classList.add('open');
+      msg.textContent = '🚪 Дверь открылась! 🌭🌭🌭';
+      createSausageConfetti();
+      setTimeout(showWin, 1500);
+    }
+  }
+
+  function createSausageConfetti() {
+    const sausageCount = 50;
+    
+    for (let i = 0; i < sausageCount; i++) {
+      setTimeout(() => {
+        const sausage = document.createElement('div');
+        sausage.className = 'sausage';
+        sausage.textContent = '🌭';
+        sausage.style.left = Math.random() * 100 + '%';
+        sausage.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        sausage.style.fontSize = (Math.random() * 2 + 2) + 'em';
+        document.body.appendChild(sausage);
+        
+        setTimeout(() => {
+          sausage.remove();
+        }, 4000);
+      }, i * 50);
+    }
+  }
+
+  function showWin() {
+    document.getElementById('win').style.display = 'block';
+    document.querySelector('.room').style.display = 'none';
+  }
+
+  function restart() {
+    location.reload();
+  }
+</script>
+
+</body>
+</html>
